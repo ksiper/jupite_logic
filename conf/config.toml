@@ -1,0 +1,2 @@
+[basic]
+database_url = "mysql://weei:123456@localhost:3306/jpt_logic"
