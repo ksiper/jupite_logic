@@ -10,6 +10,7 @@ use diesel::r2d2::{self, ConnectionManager};
 pub mod config;
 pub mod account;
 
+use std::fs;
 use config::Config;
 use account::basic::*;
 
@@ -18,15 +19,15 @@ fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
 
-    // prepare configurations
-    let toml_str = r#"
-        database_url = "mysql://weei:123456@localhost:3306/jpt_logic"
-    "#;
+    // prepare configurations from toml files
+    let cfg_contents = fs::read_to_string("./conf/config.toml")
+        .expect("Something went wrong reading the file");
 
-    let decoded: Config = toml::from_str(toml_str).unwrap();
-    println!("{}", decoded.database_url);
+    let cfg: Config = toml::from_str(cfg_contents.as_str()).unwrap();
 
-    let dbmr = ConnectionManager::<MysqlConnection>::new(decoded.database_url);
+    // init database connections pool
+    println!("{}", cfg.basic.database_url);
+    let dbmr = ConnectionManager::<MysqlConnection>::new(cfg.basic.database_url);
     let pool = r2d2::Pool::builder()
         .build(dbmr)
         .expect("failed to create pool");
@@ -39,6 +40,6 @@ fn main() -> std::io::Result<()> {
             .data(pool.clone())
             .service(web::resource("/register").to(register))
     })
-    .bind("127.0.0.1:8080")?
+    .bind("0.0.0.0:8080")?
     .run()
 }
